@@ -1,7 +1,7 @@
 // Familiar: a pixel pet in a screen corner that mirrors your coding agents' state.
 //
 // Inputs:
-//   ~/.cache/familiar/sessions/*.json    latest event per session (hooks/familiar-hook.sh, opencode/familiar.js)
+//   ~/.cache/familiar/sessions/*.json    latest event per session (hooks/familiar-hook.sh, opencode/ and pi/familiar.js)
 //   ~/.config/familiar/config.json       optional overrides of config.js DEFAULTS (live reload)
 //   ~/.config/familiar/pets/*.json       optional custom pets (override built-in ./pets/*.json)
 //   ~/.config/familiar/state.json        runtime toggles (hidden, side), written by the extension

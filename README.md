@@ -1,11 +1,11 @@
 # Familiar
 
-A pixel pet that lives in the corner of your GNOME desktop and shows what [Claude Code](https://code.claude.com) or [opencode](https://opencode.ai) is doing: thinking, running a tool, waiting for your permission, finished, or asleep. It stays visible when your terminal is minimized, so you can get on with other work and look up when it waves at you.
+A pixel pet that lives in the corner of your GNOME desktop and shows what [Claude Code](https://code.claude.com), [opencode](https://opencode.ai) or [Pi](https://pi.dev) is doing: thinking, running a tool, waiting for your permission, finished, or asleep. It stays visible when your terminal is minimized, so you can get on with other work and look up when it waves at you.
 
 ![Crab](docs/pets/crab.svg)
 
 - **11 built-in pets**, plus your own: pets are pixel art in a JSON file.
-- **Every running Claude Code and opencode session** reports in; the pet shows the most urgent one.
+- **Every running Claude Code, opencode and Pi session** reports in; the pet shows the most urgent one.
 - **Configurable**: moods, messages, colors, which events trigger what, size and timing. Changes apply as soon as you save.
 - **Out of the way**: hide it, tuck it at the screen edge, or switch corners from a top-bar menu.
 
@@ -29,6 +29,7 @@ A pixel pet that lives in the corner of your GNOME desktop and shows what [Claud
 | Desktop | GNOME Shell **50** (tested on Ubuntu, Wayland). Other versions need `shell-version` in [`metadata.json`](extension/familiar@tmurphy-credibly.github.io/metadata.json) widened, and may need code changes. |
 | Claude Code | Any recent version with hooks (`PermissionRequest`, `PostToolUseFailure`, `StopFailure` are used). |
 | opencode | Optional. **2.x**, or **1.18.29** and newer 1.x. One plugin file supports both. |
+| Pi | Optional. **1.x** (`@earendil-works/pi-coding-agent`) or **0.7x** (`@mariozechner/pi-coding-agent`). |
 | Tools | `bash`, `jq`, `gsettings`, `gnome-extensions` |
 | Optional | `node` to validate pets and run tests, `python3` to regenerate the built-in pets |
 
@@ -43,14 +44,15 @@ git clone git@github.com:tmurphy-credibly/familiar.git ~/familiar
 
 Then **log out and back in once**. On Wayland, GNOME can't load a new extension into a running session.
 
-`install.sh` does up to four things, and is safe to run again:
+`install.sh` does up to five things, and is safe to run again:
 
 1. Links `extension/familiar@tmurphy-credibly.github.io` into `~/.local/share/gnome-shell/extensions/`.
 2. Adds it to GNOME's enabled extensions.
 3. Registers `hooks/familiar-hook.sh` for 11 events in `~/.claude/settings.json`. Your existing hooks are kept, and a backup is written to `~/.claude/settings.json.bak-familiar`.
 4. If opencode is installed, links `opencode/familiar.js` into `~/.config/opencode/plugins/` (2.x) or `~/.config/opencode/plugin/` (1.x). Your opencode config is not edited.
+5. If Pi is installed, links `pi/familiar.js` into `~/.pi/agent/extensions/` (or `$PI_CODING_AGENT_DIR/extensions/`).
 
-The hooks take effect in new Claude Code sessions straight away. opencode 1.x picks up the plugin in new sessions; opencode 2.x runs plugins in its background service, so run `opencode service restart` once. Keep the clone where it is: the extension and the hooks point into it.
+The hooks take effect in new Claude Code sessions straight away. opencode 1.x picks up the plugin in new sessions; opencode 2.x runs plugins in its background service, so run `opencode service restart` once. Pi picks up the extension in new sessions, or after `/reload`. Keep the clone where it is: the extension and the hooks point into it.
 
 **Upgrading from Claude Pet?** This project used to be called Claude Pet. `git pull`, then run `install.sh` again and log out and back in. It moves `~/.config/claude-pet` to `~/.config/familiar`, swaps the old extension, hooks and opencode link for the new ones, and leaves your other hooks alone. If you renamed or moved the clone, run `install.sh` from its new location.
 
@@ -94,7 +96,7 @@ To turn it back on, use GNOME's **Extensions** app, or `gnome-extensions enable 
 | Idle | Session started, or Done went quiet. Becomes Sleeping after 10 minutes. | grey |
 | Sleeping | Nothing for 10 minutes, or no sessions running | purple |
 
-With several sessions, the pet shows the highest one in this list and the bubble lists the rest. opencode sessions are shown as `project (opencode)`.
+With several sessions, the pet shows the highest one in this list and the bubble lists the rest. opencode and Pi sessions are shown as `project (opencode)` and `project (pi)`.
 
 opencode's subagent sessions are folded into the session that started them. opencode 2.x keeps sessions open in its background service after you close the terminal, so they go Idle and then Sleeping rather than disappearing; deleting or archiving a session removes it.
 
@@ -286,15 +288,15 @@ More in [`examples/config.example.json`](examples/config.example.json).
 
 ### Rules
 
-Each event, from Claude Code or opencode, is matched against `rules`; the first match wins.
+Each event, from Claude Code, opencode or Pi, is matched against `rules`; the first match wins.
 
 | Field | Matches |
 | --- | --- |
 | `event` | Exactly: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `PermissionRequest`, `Notification`, `PreCompact`, `Stop`, `StopFailure` |
-| `tool` | Regex on the tool name (Claude Code: `Bash`, `Edit`, `mcp__…`; opencode: `shell` or `bash`, `edit`, `read`, …) |
+| `tool` | Regex on the tool name (Claude Code: `Bash`, `Edit`, `mcp__…`; opencode: `shell` or `bash`, `edit`, `read`, …; Pi: `bash`, `read`, `edit`, `write`, …) |
 | `type` | Regex on the notification type (`permission_prompt`, `idle_prompt`, …) |
 | `project` | Regex on the project folder name |
-| `agent` | Regex on the agent: `claude` or `opencode` |
+| `agent` | Regex on the agent: `claude`, `opencode` or `pi` |
 | `match` | Regex on the detail: the Bash command, file name, or search pattern |
 
 A rule then sets a `mood` with optional `text` and `detail` templates, or `"ignore": true` to keep the previous mood. Templates can use `{tool}`, `{detail}`, `{message}`, `{project}`, `{agent}`, `{type}` and `{event}`.
@@ -307,7 +309,8 @@ A rule then sets a `mood` with optional `text` and `detail` templates, or `"igno
 
 ```
 Claude Code ──hook────► hooks/familiar-hook.sh ──┐
-opencode ─────plugin──► opencode/familiar.js ────┴──► ~/.cache/familiar/sessions/<session>.json
+opencode ─────plugin──► opencode/familiar.js ────┤
+Pi ───────extension───► pi/familiar.js ──────────┴──► ~/.cache/familiar/sessions/<session>.json
                                                               │ file monitor
 ~/.config/familiar/config.json ─┐                             ▼
 ~/.config/familiar/pets/*.json ─┴──────────────────► GNOME Shell extension ──► pet, bubble, top-bar menu
@@ -327,6 +330,18 @@ opencode ─────plugin──► opencode/familiar.js ────┴─�
 | `session.execution.succeeded` | `session.idle` | `Stop` | Done |
 | `session.execution.failed` | `session.error` | `StopFailure` | Oops |
 | `session.deleted` / `archived`, shutdown | `session.deleted`, exit | file removed | |
+
+- **The Pi extension** (`pi/familiar.js`) does the same for Pi (`pi-<session>.json`). Pi has no built-in permission prompt, so Needs you means an extension is waiting for you (a confirm or select dialog, such as a permission-gate extension). Errors are reported only once Pi has stopped retrying.
+
+| Pi event | Recorded as | Mood |
+| --- | --- | --- |
+| `session_start` | `SessionStart` | Idle |
+| `agent_start` | `UserPromptSubmit` | Thinking |
+| `tool_execution_start` | `PreToolUse` | Working |
+| `tool_execution_end` | `PostToolUse` / `PostToolUseFailure` | Thinking / Oops |
+| `ui_prompt_start` (1.x) | `Notification` | Needs you; back to the previous mood on `ui_prompt_end` |
+| `agent_settled` (1.x), or `agent_end` after 1.5 s quiet (0.7x) | `Stop` / `StopFailure` | Done / Oops |
+| `session_shutdown`, exit | file removed | |
 - **The extension** watches those files, turns each event into a mood using `rules`, picks the most urgent session, and draws the pet with Cairo inside GNOME Shell. Only code inside the compositor can float above every window on Wayland, which is why this is an extension and not an app.
 
 | Path | Written by |
@@ -367,6 +382,8 @@ ls ~/.cache/familiar/sessions/ | grep opencode   # appears once you send a promp
 
 opencode 1.x older than 1.18.29 can't load this plugin's format; upgrade opencode.
 
+**Pi sessions don't show up.** Check `ls -l ~/.pi/agent/extensions/familiar.js`, then start a new Pi session (or `/reload`). A file appears in `~/.cache/familiar/sessions/` as soon as Pi starts.
+
 **My config or pet isn't applied.** A notification explains config errors. For pets, run `tools/check-pet.mjs` on the file.
 
 **Clicking doesn't raise my terminal.** Terminals are matched by window class: Ptyxis, GNOME Terminal, kitty, Alacritty, WezTerm, Konsole, Ghostty, Tilix, foot. Others need adding to `TERMINAL_RE` in `extension.js`.
@@ -377,7 +394,7 @@ opencode 1.x older than 1.18.29 can't load this plugin's format; upgrade opencod
 ~/familiar/uninstall.sh
 ```
 
-This removes the hooks from `~/.claude/settings.json` and the opencode plugin link, disables and unlinks the extension, and deletes `~/.cache/familiar`. Your `~/.config/familiar` (config and custom pets) is left alone.
+This removes the hooks from `~/.claude/settings.json`, the opencode plugin and Pi extension links, disables and unlinks the extension, and deletes `~/.cache/familiar`. Your `~/.config/familiar` (config and custom pets) is left alone.
 
 ## Development
 
@@ -385,6 +402,7 @@ This removes the hooks from `~/.claude/settings.json` and the opencode plugin li
 test/test-hook.sh                       # the hook records the right fields and never blocks
 node test/test-config.mjs               # rules, moods, decay, config errors, every built-in pet
 node test/test-opencode.mjs             # the opencode plugin, against fake 1.x and 2.x opencode APIs
+node test/test-pi.mjs                   # the Pi extension, against a fake Pi API (1.x and 0.7x)
 test/test-install.sh                    # install / uninstall / Claude Pet migration in a throwaway $HOME
 ```
 
@@ -393,6 +411,7 @@ test/test-install.sh                    # install / uninstall / Claude Pet migra
 | Pets, config | Save; it applies within a second |
 | Hook | The next Claude Code event |
 | opencode plugin | A new opencode 1.x session, or `opencode service restart` for 2.x |
+| Pi extension | A new Pi session, or `/reload` |
 | Extension code (`extension.js`, `config.js`, CSS) | Log out and back in, or test in a nested shell: `dbus-run-session -- gnome-shell --devkit --wayland` |
 
 Logs: `journalctl --user -f -o cat /usr/bin/gnome-shell | grep -i familiar`.

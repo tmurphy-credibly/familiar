@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Removes Familiar's hooks, opencode plugin and GNOME extension.
+# Removes Familiar's hooks, opencode plugin, Pi extension and GNOME extension.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -22,6 +22,9 @@ for d in plugin plugins; do
   link="$config_home/opencode/$d/familiar.js"
   [ -L "$link" ] && [[ "$(readlink "$link")" == */opencode/familiar.js ]] && rm -f "$link"
 done
+
+pi_link="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/extensions/familiar.js"
+[ -L "$pi_link" ] && [[ "$(readlink "$pi_link")" == */pi/familiar.js ]] && rm -f "$pi_link"
 
 gnome-extensions disable "$uuid" 2>/dev/null || true
 current="$(gsettings get org.gnome.shell enabled-extensions)"
