@@ -17,7 +17,7 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-import {DEFAULTS, FALLBACK_PET, buildConfig, resolveEvent, effectiveState, parsePet, spriteFor, frameIndex} from './config.js';
+import {DEFAULTS, FALLBACK_PET, buildConfig, resolveEvent, effectiveState, parsePet, spriteFor, frameIndex, sessionLabel} from './config.js';
 
 const STATE_DIR = GLib.build_filenamev([GLib.get_user_cache_dir(), 'claude-pet', 'sessions']);
 const CONFIG_DIR = GLib.build_filenamev([GLib.get_user_config_dir(), 'claude-pet']);
@@ -331,7 +331,7 @@ export default class ClaudePetExtension extends Extension {
         const top = this._sessions[0];
         const label = this._config.moods[this._mood].label ?? this._mood;
         const others = this._sessions.length > 1 ? ` (+${this._sessions.length - 1} more)` : '';
-        this._statusItem.label.text = top ? `${label} · ${top.project}${others}` : 'No Claude sessions running';
+        this._statusItem.label.text = top ? `${label} · ${top.label}${others}` : 'No agent sessions running';
         this._showItem.setToggleState(this._toggles.shown);
         this._tuckItem.setToggleState(this._toggles.hidden);
         this._monitorItem.visible = Main.layoutManager.monitors.length > 1;
@@ -434,12 +434,12 @@ export default class ClaudePetExtension extends Extension {
         this._bubbleButton.visible = shown && !hidden && !dragging && (this._hover || Boolean(top && moodCfg.bubble));
 
         this._dot.style = `background-color: ${moodCfg.color};`;
-        this._title.text = top ? `${moodCfg.label ?? mood} · ${top.project}` : (moodCfg.label ?? mood);
-        this._text.text = top ? top.text : 'No Claude sessions running.';
+        this._title.text = top ? `${moodCfg.label ?? mood} · ${top.label}` : (moodCfg.label ?? mood);
+        this._text.text = top ? top.text : 'No agent sessions running.';
         this._detail.text = top?.detail || '';
         this._detail.visible = Boolean(top?.detail);
 
-        const others = this._sessions.slice(1).map(s => `${s.project} · ${moods[s.mood].label ?? s.mood}`);
+        const others = this._sessions.slice(1).map(s => `${s.label} · ${moods[s.mood].label ?? s.mood}`);
         this._others.text = others.join('\n');
         this._others.visible = others.length > 0;
         this._hint.visible = Boolean(top) && this._config.look.showHint;
@@ -692,7 +692,7 @@ export default class ClaudePetExtension extends Extension {
                     }
                     if (now - entry.state.ts > staleS)
                         continue;
-                    sessions.push({project: ev.project || 'claude', ...effectiveState(this._config, entry.state, now)});
+                    sessions.push({project: ev.project || ev.agent || 'claude', label: sessionLabel(ev), ...effectiveState(this._config, entry.state, now)});
                 } catch (e) {
                     // Half-written or unreadable file: skip until the next change.
                 }

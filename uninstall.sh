@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Removes Claude Pet's hooks and GNOME extension.
+# Removes Claude Pet's hooks, opencode plugin and GNOME extension.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -16,6 +16,12 @@ if [ -f "$settings" ]; then
   ' "$settings" >"$settings.tmp"
   mv "$settings.tmp" "$settings"
 fi
+
+oc_config="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
+for d in plugin plugins; do
+  link="$oc_config/$d/claude-pet.js"
+  [ -L "$link" ] && [ "$(readlink "$link")" = "$root/opencode/claude-pet.js" ] && rm -f "$link"
+done
 
 gnome-extensions disable "$uuid" 2>/dev/null || true
 current="$(gsettings get org.gnome.shell enabled-extensions)"

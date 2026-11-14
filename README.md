@@ -1,11 +1,11 @@
 # Claude Pet
 
-A pixel pet that lives in the corner of your GNOME desktop and shows what [Claude Code](https://code.claude.com) is doing: thinking, running a tool, waiting for your permission, finished, or asleep. It stays visible when your terminal is minimized, so you can get on with other work and look up when it waves at you.
+A pixel pet that lives in the corner of your GNOME desktop and shows what [Claude Code](https://code.claude.com) or [opencode](https://opencode.ai) is doing: thinking, running a tool, waiting for your permission, finished, or asleep. It stays visible when your terminal is minimized, so you can get on with other work and look up when it waves at you.
 
 ![Crab](docs/pets/crab.svg)
 
 - **11 built-in pets**, plus your own: pets are pixel art in a JSON file.
-- **Every running Claude Code session** reports in; the pet shows the most urgent one.
+- **Every running Claude Code and opencode session** reports in; the pet shows the most urgent one.
 - **Configurable**: moods, messages, colors, which events trigger what, size and timing. Changes apply as soon as you save.
 - **Out of the way**: hide it, tuck it at the screen edge, or switch corners from a top-bar menu.
 
@@ -28,6 +28,7 @@ A pixel pet that lives in the corner of your GNOME desktop and shows what [Claud
 | --- | --- |
 | Desktop | GNOME Shell **50** (tested on Ubuntu, Wayland). Other versions need `shell-version` in [`metadata.json`](extension/claude-pet@tmurphy-credibly.github.io/metadata.json) widened, and may need code changes. |
 | Claude Code | Any recent version with hooks (`PermissionRequest`, `PostToolUseFailure`, `StopFailure` are used). |
+| opencode | Optional. **2.x**, or **1.18.29** and newer 1.x. One plugin file supports both. |
 | Tools | `bash`, `jq`, `gsettings`, `gnome-extensions` |
 | Optional | `node` to validate pets and run tests, `python3` to regenerate the built-in pets |
 
@@ -42,13 +43,14 @@ git clone git@github.com:tmurphy-credibly/claude-pet.git ~/claude-pet
 
 Then **log out and back in once**. On Wayland, GNOME can't load a new extension into a running session.
 
-`install.sh` does three things, and is safe to run again:
+`install.sh` does up to four things, and is safe to run again:
 
 1. Links `extension/claude-pet@tmurphy-credibly.github.io` into `~/.local/share/gnome-shell/extensions/`.
 2. Adds it to GNOME's enabled extensions.
 3. Registers `hooks/claude-pet-hook.sh` for 11 events in `~/.claude/settings.json`. Your existing hooks are kept, and a backup is written to `~/.claude/settings.json.bak-claude-pet`.
+4. If opencode is installed, links `opencode/claude-pet.js` into `~/.config/opencode/plugins/` (2.x) or `~/.config/opencode/plugin/` (1.x). Your opencode config is not edited.
 
-The hooks take effect in new Claude Code sessions straight away. Keep the clone where it is: the extension and the hooks point into it.
+The hooks take effect in new Claude Code sessions straight away. opencode 1.x picks up the plugin in new sessions; opencode 2.x runs plugins in its background service, so run `opencode service restart` once. Keep the clone where it is: the extension and the hooks point into it.
 
 To update, `git pull`. Pet and config changes apply immediately; extension code changes need another log out and back in.
 
@@ -90,7 +92,9 @@ To turn it back on, use GNOME's **Extensions** app, or `gnome-extensions enable 
 | Idle | Session started, or Done went quiet. Becomes Sleeping after 10 minutes. | grey |
 | Sleeping | Nothing for 10 minutes, or no sessions running | purple |
 
-With several sessions, the pet shows the highest one in this list and the bubble lists the rest.
+With several sessions, the pet shows the highest one in this list and the bubble lists the rest. opencode sessions are shown as `project (opencode)`.
+
+opencode's subagent sessions are folded into the session that started them. opencode 2.x keeps sessions open in its background service after you close the terminal, so they go Idle and then Sleeping rather than disappearing; deleting or archiving a session removes it.
 
 ## The pets
 
@@ -280,17 +284,18 @@ More in [`examples/config.example.json`](examples/config.example.json).
 
 ### Rules
 
-Each Claude Code event is matched against `rules`; the first match wins.
+Each event, from Claude Code or opencode, is matched against `rules`; the first match wins.
 
 | Field | Matches |
 | --- | --- |
 | `event` | Exactly: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `PermissionRequest`, `Notification`, `PreCompact`, `Stop`, `StopFailure` |
-| `tool` | Regex on the tool name (`Bash`, `Edit`, `mcp__…`) |
+| `tool` | Regex on the tool name (Claude Code: `Bash`, `Edit`, `mcp__…`; opencode: `shell` or `bash`, `edit`, `read`, …) |
 | `type` | Regex on the notification type (`permission_prompt`, `idle_prompt`, …) |
 | `project` | Regex on the project folder name |
+| `agent` | Regex on the agent: `claude` or `opencode` |
 | `match` | Regex on the detail: the Bash command, file name, or search pattern |
 
-A rule then sets a `mood` with optional `text` and `detail` templates, or `"ignore": true` to keep the previous mood. Templates can use `{tool}`, `{detail}`, `{message}`, `{project}`, `{type}` and `{event}`.
+A rule then sets a `mood` with optional `text` and `detail` templates, or `"ignore": true` to keep the previous mood. Templates can use `{tool}`, `{detail}`, `{message}`, `{project}`, `{agent}`, `{type}` and `{event}`.
 
 ```json
 { "event": "PreToolUse", "tool": "^(Read|Grep|Glob)$", "ignore": true }
@@ -299,13 +304,27 @@ A rule then sets a `mood` with optional `text` and `detail` templates, or `"igno
 ## How it works
 
 ```
-Claude Code ──hook──► hooks/claude-pet-hook.sh ──► ~/.cache/claude-pet/sessions/<session>.json
+Claude Code ──hook──► hooks/claude-pet-hook.sh ──┐
+opencode ──plugin──► opencode/claude-pet.js ─────┴─► ~/.cache/claude-pet/sessions/<session>.json
                                                          │ file monitor
 ~/.config/claude-pet/config.json ─┐                      ▼
 ~/.config/claude-pet/pets/*.json ─┴──────────► GNOME Shell extension ──► pet, bubble, top-bar menu
 ```
 
-- **The hook** runs on every Claude Code event, writes the raw facts (event, tool, detail, project, time) to one file per session, and exits. It prints nothing and always exits 0, so it can never block or change Claude.
+- **The hook** runs on every Claude Code event, writes the raw facts (agent, event, tool, detail, project, time) to one file per session, and exits. It prints nothing and always exits 0, so it can never block or change Claude.
+- **The opencode plugin** runs inside opencode and writes the same files (`opencode-<session>.json`). It translates opencode's events into Claude Code's event names, so the same [rules](#configuration) apply to both. It only observes: it never changes a tool call, a permission or a reply, and errors inside it are swallowed. One file carries both plugin APIs: `setup()` for opencode 2.x and `server()` for 1.x.
+
+| opencode 2.x | opencode 1.x | Recorded as | Mood |
+| --- | --- | --- | --- |
+| `session.created` | `session.created` | `SessionStart` | Idle |
+| `session.execution.started` | `chat.message` | `UserPromptSubmit` | Thinking |
+| tool `execute.before` | `tool.execute.before` | `PreToolUse` | Working |
+| tool `execute.after` | `tool.execute.after` | `PostToolUse` / `PostToolUseFailure` | Thinking / Oops |
+| `permission.asked` | `permission.asked` / `permission.updated` | `PermissionRequest` | Needs you |
+| `form.created` | `question.asked` | `Notification` | Needs you |
+| `session.execution.succeeded` | `session.idle` | `Stop` | Done |
+| `session.execution.failed` | `session.error` | `StopFailure` | Oops |
+| `session.deleted` / `archived`, shutdown | `session.deleted`, exit | file removed | |
 - **The extension** watches those files, turns each event into a mood using `rules`, picks the most urgent session, and draws the pet with Cairo inside GNOME Shell. Only code inside the compositor can float above every window on Wayland, which is why this is an extension and not an app.
 
 | Path | Written by |
@@ -336,6 +355,16 @@ ls ~/.cache/claude-pet/sessions/                     # one file per running sess
 
 Sessions started before you installed don't have the hooks; start a new one.
 
+**opencode sessions don't show up.** Check that the plugin is linked and loaded:
+
+```bash
+ls -l ~/.config/opencode/plugins/claude-pet.js    # 2.x (1.x: ~/.config/opencode/plugin/)
+opencode service restart                           # 2.x loads plugins in its background service
+ls ~/.cache/claude-pet/sessions/ | grep opencode   # appears once you send a prompt
+```
+
+opencode 1.x older than 1.18.29 can't load this plugin's format; upgrade opencode.
+
 **My config or pet isn't applied.** A notification explains config errors. For pets, run `tools/check-pet.mjs` on the file.
 
 **Clicking doesn't raise my terminal.** Terminals are matched by window class: Ptyxis, GNOME Terminal, kitty, Alacritty, WezTerm, Konsole, Ghostty, Tilix, foot. Others need adding to `TERMINAL_RE` in `extension.js`.
@@ -346,19 +375,21 @@ Sessions started before you installed don't have the hooks; start a new one.
 ~/claude-pet/uninstall.sh
 ```
 
-This removes the hooks from `~/.claude/settings.json`, disables and unlinks the extension, and deletes `~/.cache/claude-pet`. Your `~/.config/claude-pet` (config and custom pets) is left alone.
+This removes the hooks from `~/.claude/settings.json` and the opencode plugin link, disables and unlinks the extension, and deletes `~/.cache/claude-pet`. Your `~/.config/claude-pet` (config and custom pets) is left alone.
 
 ## Development
 
 ```bash
 test/test-hook.sh                       # the hook records the right fields and never blocks
 node test/test-config.mjs               # rules, moods, decay, config errors, every built-in pet
+node test/test-opencode.mjs             # the opencode plugin, against fake 1.x and 2.x opencode APIs
 ```
 
 | Change | To see it |
 | --- | --- |
 | Pets, config | Save; it applies within a second |
 | Hook | The next Claude Code event |
+| opencode plugin | A new opencode 1.x session, or `opencode service restart` for 2.x |
 | Extension code (`extension.js`, `config.js`, CSS) | Log out and back in, or test in a nested shell: `dbus-run-session -- gnome-shell --devkit --wayland` |
 
 Logs: `journalctl --user -f -o cat /usr/bin/gnome-shell | grep -i claude-pet`.
