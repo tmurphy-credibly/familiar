@@ -4,9 +4,9 @@ import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 import {
     FALLBACK_PET, buildConfig, resolveEvent, effectiveState, parsePet, spriteFor, frameIndex, fill,
-} from '../extension/claude-pet@tmurphy-credibly.github.io/config.js';
+} from '../extension/familiar@tmurphy-credibly.github.io/config.js';
 
-const ext = fileURLToPath(new URL('../extension/claude-pet@tmurphy-credibly.github.io/', import.meta.url));
+const ext = fileURLToPath(new URL('../extension/familiar@tmurphy-credibly.github.io/', import.meta.url));
 let failed = 0;
 function test(name, fn) {
     try {

@@ -1,4 +1,4 @@
-// Pure config / rules / pet logic for Claude Pet. No GNOME imports, so it can be
+// Pure config / rules / pet logic for Familiar. No GNOME imports, so it can be
 // unit-tested with Node (see test/test-config.mjs).
 
 export const DEFAULTS = {

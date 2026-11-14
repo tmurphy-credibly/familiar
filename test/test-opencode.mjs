@@ -4,10 +4,10 @@ import {mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync} from 'nod
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import assert from 'node:assert/strict';
-import plugin from '../opencode/claude-pet.js';
-import {buildConfig, resolveEvent, sessionLabel} from '../extension/claude-pet@tmurphy-credibly.github.io/config.js';
+import plugin from '../opencode/familiar.js';
+import {buildConfig, resolveEvent, sessionLabel} from '../extension/familiar@tmurphy-credibly.github.io/config.js';
 
-const {toolDetail, createRecorder, setupV2, serverV1} = plugin[Symbol.for('claude-pet.internals')];
+const {toolDetail, createRecorder, setupV2, serverV1} = plugin[Symbol.for('familiar.internals')];
 const {config} = buildConfig({});
 let failed = 0;
 async function test(name, fn) {
@@ -64,9 +64,9 @@ function fakeV2(directory) {
 }
 
 await test('the module exports only the plugin object', async () => {
-    const mod = await import('../opencode/claude-pet.js');
+    const mod = await import('../opencode/familiar.js');
     assert.deepEqual(Object.keys(mod), ['default']);
-    assert.equal(plugin.id, 'claude-pet');
+    assert.equal(plugin.id, 'familiar');
     assert.equal(typeof plugin.setup, 'function');
     assert.equal(typeof plugin.server, 'function');
     assert.deepEqual(Object.keys(plugin).sort(), ['id', 'server', 'setup']);

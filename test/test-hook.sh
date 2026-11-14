@@ -3,10 +3,10 @@
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-hook="$root/hooks/claude-pet-hook.sh"
+hook="$root/hooks/familiar-hook.sh"
 export XDG_CACHE_HOME="$(mktemp -d)"
 trap 'rm -rf "$XDG_CACHE_HOME"' EXIT
-state="$XDG_CACHE_HOME/claude-pet/sessions/abc-123.json"
+state="$XDG_CACHE_HOME/familiar/sessions/abc-123.json"
 fail=0
 
 send() { bash "$hook" <<<"$1"; }
@@ -42,7 +42,7 @@ send "{$base,\"hook_event_name\":\"SessionEnd\"}"
 if [ ! -e "$state" ]; then echo "ok   SessionEnd removes the file"; else echo "FAIL SessionEnd left the file"; fail=1; fi
 
 send '{"session_id":"../../evil","hook_event_name":"Stop","cwd":"/x"}'
-if [ -e "$XDG_CACHE_HOME/claude-pet/sessions/evil.json" ] && [ ! -e "$XDG_CACHE_HOME/evil.json" ]; then
+if [ -e "$XDG_CACHE_HOME/familiar/sessions/evil.json" ] && [ ! -e "$XDG_CACHE_HOME/evil.json" ]; then
   echo "ok   session id is sanitized"
 else
   echo "FAIL session id sanitizing"; fail=1

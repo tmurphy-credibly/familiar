@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Removes Claude Pet's hooks, opencode plugin and GNOME extension.
+# Removes Familiar's hooks, opencode plugin and GNOME extension.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-uuid="claude-pet@tmurphy-credibly.github.io"
-hook="$root/hooks/claude-pet-hook.sh"
+uuid="familiar@tmurphy-credibly.github.io"
+hook="$root/hooks/familiar-hook.sh"
 settings="$HOME/.claude/settings.json"
+config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
 
 if [ -f "$settings" ]; then
   jq --arg cmd "$hook" '
@@ -17,10 +18,9 @@ if [ -f "$settings" ]; then
   mv "$settings.tmp" "$settings"
 fi
 
-oc_config="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 for d in plugin plugins; do
-  link="$oc_config/$d/claude-pet.js"
-  [ -L "$link" ] && [ "$(readlink "$link")" = "$root/opencode/claude-pet.js" ] && rm -f "$link"
+  link="$config_home/opencode/$d/familiar.js"
+  [ -L "$link" ] && [[ "$(readlink "$link")" == */opencode/familiar.js ]] && rm -f "$link"
 done
 
 gnome-extensions disable "$uuid" 2>/dev/null || true
@@ -29,5 +29,5 @@ updated="$(sed -E "s/, '$uuid'//; s/'$uuid', //; s/'$uuid'//" <<<"$current")"
 gsettings set org.gnome.shell enabled-extensions "$updated"
 
 rm -f "$HOME/.local/share/gnome-shell/extensions/$uuid"
-rm -rf "${XDG_CACHE_HOME:-$HOME/.cache}/claude-pet"
-echo "Claude Pet removed."
+rm -rf "${XDG_CACHE_HOME:-$HOME/.cache}/familiar"
+echo "Familiar removed."

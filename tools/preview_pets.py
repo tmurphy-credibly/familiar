@@ -7,7 +7,7 @@ import json
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-PETS = ROOT / "extension" / "claude-pet@tmurphy-credibly.github.io" / "pets"
+PETS = ROOT / "extension" / "familiar@tmurphy-credibly.github.io" / "pets"
 OUT = ROOT / "docs" / "pets"
 MOODS = [  # (mood, label, status color) — keep in sync with config.js DEFAULTS
     ("idle", "Idle", "#B9B7AE"), ("thinking", "Thinking", "#6FA3FF"), ("working", "Working", "#FF9A6B"),

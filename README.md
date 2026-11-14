@@ -1,4 +1,4 @@
-# Claude Pet
+# Familiar
 
 A pixel pet that lives in the corner of your GNOME desktop and shows what [Claude Code](https://code.claude.com) or [opencode](https://opencode.ai) is doing: thinking, running a tool, waiting for your permission, finished, or asleep. It stays visible when your terminal is minimized, so you can get on with other work and look up when it waves at you.
 
@@ -26,7 +26,7 @@ A pixel pet that lives in the corner of your GNOME desktop and shows what [Claud
 
 | | |
 | --- | --- |
-| Desktop | GNOME Shell **50** (tested on Ubuntu, Wayland). Other versions need `shell-version` in [`metadata.json`](extension/claude-pet@tmurphy-credibly.github.io/metadata.json) widened, and may need code changes. |
+| Desktop | GNOME Shell **50** (tested on Ubuntu, Wayland). Other versions need `shell-version` in [`metadata.json`](extension/familiar@tmurphy-credibly.github.io/metadata.json) widened, and may need code changes. |
 | Claude Code | Any recent version with hooks (`PermissionRequest`, `PostToolUseFailure`, `StopFailure` are used). |
 | opencode | Optional. **2.x**, or **1.18.29** and newer 1.x. One plugin file supports both. |
 | Tools | `bash`, `jq`, `gsettings`, `gnome-extensions` |
@@ -37,26 +37,28 @@ Check your GNOME version with `gnome-shell --version`.
 ## Install
 
 ```bash
-git clone git@github.com:tmurphy-credibly/claude-pet.git ~/claude-pet
-~/claude-pet/install.sh
+git clone git@github.com:tmurphy-credibly/familiar.git ~/familiar
+~/familiar/install.sh
 ```
 
 Then **log out and back in once**. On Wayland, GNOME can't load a new extension into a running session.
 
 `install.sh` does up to four things, and is safe to run again:
 
-1. Links `extension/claude-pet@tmurphy-credibly.github.io` into `~/.local/share/gnome-shell/extensions/`.
+1. Links `extension/familiar@tmurphy-credibly.github.io` into `~/.local/share/gnome-shell/extensions/`.
 2. Adds it to GNOME's enabled extensions.
-3. Registers `hooks/claude-pet-hook.sh` for 11 events in `~/.claude/settings.json`. Your existing hooks are kept, and a backup is written to `~/.claude/settings.json.bak-claude-pet`.
-4. If opencode is installed, links `opencode/claude-pet.js` into `~/.config/opencode/plugins/` (2.x) or `~/.config/opencode/plugin/` (1.x). Your opencode config is not edited.
+3. Registers `hooks/familiar-hook.sh` for 11 events in `~/.claude/settings.json`. Your existing hooks are kept, and a backup is written to `~/.claude/settings.json.bak-familiar`.
+4. If opencode is installed, links `opencode/familiar.js` into `~/.config/opencode/plugins/` (2.x) or `~/.config/opencode/plugin/` (1.x). Your opencode config is not edited.
 
 The hooks take effect in new Claude Code sessions straight away. opencode 1.x picks up the plugin in new sessions; opencode 2.x runs plugins in its background service, so run `opencode service restart` once. Keep the clone where it is: the extension and the hooks point into it.
+
+**Upgrading from Claude Pet?** This project used to be called Claude Pet. `git pull`, then run `install.sh` again and log out and back in. It moves `~/.config/claude-pet` to `~/.config/familiar`, swaps the old extension, hooks and opencode link for the new ones, and leaves your other hooks alone. If you renamed or moved the clone, run `install.sh` from its new location.
 
 To update, `git pull`. Pet and config changes apply immediately; extension code changes need another log out and back in.
 
 ## Using it
 
-**On the desktop.** The pet starts in the bottom-right corner. When Claude needs you, finishes, or hits an error, a speech bubble says so: which project, and what it wants, such as "Can I run Bash?" with the command.
+**On the desktop.** The pet starts in the bottom-right corner. When your agent needs you, finishes, or hits an error, a speech bubble says so: which project, and what it wants, such as "Can I run Bash?" with the command.
 
 - **Drag** the pet anywhere, on any monitor. It remembers the spot. The bubble opens toward the middle of the screen, and below the pet when it's near the top.
 - **Click** the pet or the bubble to bring up your terminal. It picks the most recently used terminal window, preferring one whose title contains the project name.
@@ -74,21 +76,21 @@ To update, `git pull`. Pet and config changes apply immediately; extension code 
 | Move to next monitor | Same spot on your next monitor (shown with 2+ monitors) |
 | Snap to bottom-left / bottom-right corner | Back to a corner of the pet's current monitor |
 | Pet ▸ | Pick any built-in or custom pet |
-| Edit config… | Opens `~/.config/claude-pet/config.json` (creates it if needed) |
-| Open pets folder | Opens `~/.config/claude-pet/pets/` |
-| Turn off Claude Pet | Disables the extension |
+| Edit config… | Opens `~/.config/familiar/config.json` (creates it if needed) |
+| Open pets folder | Opens `~/.config/familiar/pets/` |
+| Turn off Familiar | Disables the extension |
 
-To turn it back on, use GNOME's **Extensions** app, or `gnome-extensions enable claude-pet@tmurphy-credibly.github.io`.
+To turn it back on, use GNOME's **Extensions** app, or `gnome-extensions enable familiar@tmurphy-credibly.github.io`.
 
 **Moods**
 
 | Mood | When | Status color |
 | --- | --- | --- |
-| Needs you | Claude asks for permission or your input | yellow |
+| Needs you | The agent asks for permission or your input | yellow |
 | Oops | A tool call or a turn failed | red |
 | Working | A tool is running (the bubble shows the command or file) | orange |
 | Thinking | You sent a prompt, or a tool just finished | blue |
-| Done | Claude finished its turn. Becomes Idle after 2 minutes. | green |
+| Done | The agent finished its turn. Becomes Idle after 2 minutes. | green |
 | Idle | Session started, or Done went quiet. Becomes Sleeping after 10 minutes. | grey |
 | Sleeping | Nothing for 10 minutes, or no sessions running | purple |
 
@@ -148,15 +150,15 @@ These previews show the first frame of each mood. On the desktop most moods are 
 
 ## Make your own pet
 
-A pet is one JSON file of pixel art. Put it in `~/.config/claude-pet/pets/` and it appears in the top-bar **Pet** menu, with no restart needed.
+A pet is one JSON file of pixel art. Put it in `~/.config/familiar/pets/` and it appears in the top-bar **Pet** menu, with no restart needed.
 
 ### 1. Start from a template
 
 Copy a built-in pet that's close to what you want:
 
 ```bash
-mkdir -p ~/.config/claude-pet/pets
-cp ~/claude-pet/extension/claude-pet@tmurphy-credibly.github.io/pets/cat.json ~/.config/claude-pet/pets/tiger.json
+mkdir -p ~/.config/familiar/pets
+cp ~/familiar/extension/familiar@tmurphy-credibly.github.io/pets/cat.json ~/.config/familiar/pets/tiger.json
 ```
 
 The file name (`tiger`) is the pet's ID. Use letters, digits, `-` and `_`.
@@ -205,15 +207,15 @@ The file name (`tiger`) is the pet's ID. Use letters, digits, `-` and `_`.
 ### 3. Check it
 
 ```bash
-node ~/claude-pet/tools/check-pet.mjs ~/.config/claude-pet/pets/tiger.json        # every mood and frame
-node ~/claude-pet/tools/check-pet.mjs ~/.config/claude-pet/pets/tiger.json needs  # one mood
+node ~/familiar/tools/check-pet.mjs ~/.config/familiar/pets/tiger.json        # every mood and frame
+node ~/familiar/tools/check-pet.mjs ~/.config/familiar/pets/tiger.json needs  # one mood
 ```
 
 This validates the file, lists any missing moods, and draws every frame in color in your terminal. Errors name the mood and the offending character.
 
 ### 4. Use it
 
-Pick it from the top-bar **Pet** menu, or set it in `~/.config/claude-pet/config.json`:
+Pick it from the top-bar **Pet** menu, or set it in `~/.config/familiar/config.json`:
 
 ```json
 { "pet": "tiger" }
@@ -223,19 +225,19 @@ Saving the pet file reloads it while it's in use. If the file is broken, a notif
 
 ### Adding a pet to this repo
 
-Built-in pets live in [`extension/claude-pet@tmurphy-credibly.github.io/pets/`](extension/claude-pet@tmurphy-credibly.github.io/pets/). The existing ones are generated by [`tools/gen_pets.py`](tools/gen_pets.py) from rectangles, which makes shared parts (ears, eyes, legs) easy to reuse across moods. A hand-written JSON file works just as well. Then:
+Built-in pets live in [`extension/familiar@tmurphy-credibly.github.io/pets/`](extension/familiar@tmurphy-credibly.github.io/pets/). The existing ones are generated by [`tools/gen_pets.py`](tools/gen_pets.py) from rectangles, which makes shared parts (ears, eyes, legs) easy to reuse across moods. A hand-written JSON file works just as well. Then:
 
 ```bash
-python3 tools/gen_pets.py extension/claude-pet@tmurphy-credibly.github.io/pets   # if you used the generator
+python3 tools/gen_pets.py extension/familiar@tmurphy-credibly.github.io/pets   # if you used the generator
 python3 tools/preview_pets.py                                         # regenerate docs/pets/*.svg
-node tools/check-pet.mjs extension/claude-pet@tmurphy-credibly.github.io/pets/<name>.json
+node tools/check-pet.mjs extension/familiar@tmurphy-credibly.github.io/pets/<name>.json
 ```
 
 Add the name to the built-in pet test in [`test/test-config.mjs`](test/test-config.mjs) (it checks every built-in pet has all seven moods), and add the pet to [The pets](#the-pets) above.
 
 ## Configuration
 
-Everything is optional. Create `~/.config/claude-pet/config.json` (or use **Edit config…** in the menu) and add only what you want to change. It's merged over the defaults in [`config.js`](extension/claude-pet@tmurphy-credibly.github.io/config.js); the `DEFAULTS` object there is the full reference. Saving applies it within a second. A broken file pops a notification and the last good config stays in use.
+Everything is optional. Create `~/.config/familiar/config.json` (or use **Edit config…** in the menu) and add only what you want to change. It's merged over the defaults in [`config.js`](extension/familiar@tmurphy-credibly.github.io/config.js); the `DEFAULTS` object there is the full reference. Saving applies it within a second. A broken file pops a notification and the last good config stays in use.
 
 ```json
 {
@@ -304,11 +306,11 @@ A rule then sets a `mood` with optional `text` and `detail` templates, or `"igno
 ## How it works
 
 ```
-Claude Code ──hook──► hooks/claude-pet-hook.sh ──┐
-opencode ──plugin──► opencode/claude-pet.js ─────┴─► ~/.cache/claude-pet/sessions/<session>.json
-                                                         │ file monitor
-~/.config/claude-pet/config.json ─┐                      ▼
-~/.config/claude-pet/pets/*.json ─┴──────────► GNOME Shell extension ──► pet, bubble, top-bar menu
+Claude Code ──hook────► hooks/familiar-hook.sh ──┐
+opencode ─────plugin──► opencode/familiar.js ────┴──► ~/.cache/familiar/sessions/<session>.json
+                                                              │ file monitor
+~/.config/familiar/config.json ─┐                             ▼
+~/.config/familiar/pets/*.json ─┴──────────────────► GNOME Shell extension ──► pet, bubble, top-bar menu
 ```
 
 - **The hook** runs on every Claude Code event, writes the raw facts (agent, event, tool, detail, project, time) to one file per session, and exits. It prints nothing and always exits 0, so it can never block or change Claude.
@@ -329,17 +331,17 @@ opencode ──plugin──► opencode/claude-pet.js ─────┴─► ~
 
 | Path | Written by |
 | --- | --- |
-| `~/.cache/claude-pet/sessions/<id>.json` | The hook: the latest event per session (removed on `SessionEnd`) |
-| `~/.config/claude-pet/config.json`, `pets/` | You |
-| `~/.config/claude-pet/state.json` | The extension: shown / tucked / position |
+| `~/.cache/familiar/sessions/<id>.json` | The hook: the latest event per session (removed on `SessionEnd`) |
+| `~/.config/familiar/config.json`, `pets/` | You |
+| `~/.config/familiar/state.json` | The extension: shown / tucked / position |
 
 ## Troubleshooting
 
 **No pet after installing.** Log out and back in, then:
 
 ```bash
-gnome-extensions info claude-pet@tmurphy-credibly.github.io     # want: Enabled: Yes, State: ACTIVE
-journalctl --user -b -o cat /usr/bin/gnome-shell | grep -i claude-pet
+gnome-extensions info familiar@tmurphy-credibly.github.io     # want: Enabled: Yes, State: ACTIVE
+journalctl --user -b -o cat /usr/bin/gnome-shell | grep -i familiar
 ```
 
 - `State: ERROR`: the journal line says why.
@@ -350,7 +352,7 @@ journalctl --user -b -o cat /usr/bin/gnome-shell | grep -i claude-pet
 
 ```bash
 jq '.hooks | keys' ~/.claude/settings.json          # should include PreToolUse, Stop, …
-ls ~/.cache/claude-pet/sessions/                     # one file per running session
+ls ~/.cache/familiar/sessions/                     # one file per running session
 ```
 
 Sessions started before you installed don't have the hooks; start a new one.
@@ -358,9 +360,9 @@ Sessions started before you installed don't have the hooks; start a new one.
 **opencode sessions don't show up.** Check that the plugin is linked and loaded:
 
 ```bash
-ls -l ~/.config/opencode/plugins/claude-pet.js    # 2.x (1.x: ~/.config/opencode/plugin/)
+ls -l ~/.config/opencode/plugins/familiar.js    # 2.x (1.x: ~/.config/opencode/plugin/)
 opencode service restart                           # 2.x loads plugins in its background service
-ls ~/.cache/claude-pet/sessions/ | grep opencode   # appears once you send a prompt
+ls ~/.cache/familiar/sessions/ | grep opencode   # appears once you send a prompt
 ```
 
 opencode 1.x older than 1.18.29 can't load this plugin's format; upgrade opencode.
@@ -372,10 +374,10 @@ opencode 1.x older than 1.18.29 can't load this plugin's format; upgrade opencod
 ## Uninstall
 
 ```bash
-~/claude-pet/uninstall.sh
+~/familiar/uninstall.sh
 ```
 
-This removes the hooks from `~/.claude/settings.json` and the opencode plugin link, disables and unlinks the extension, and deletes `~/.cache/claude-pet`. Your `~/.config/claude-pet` (config and custom pets) is left alone.
+This removes the hooks from `~/.claude/settings.json` and the opencode plugin link, disables and unlinks the extension, and deletes `~/.cache/familiar`. Your `~/.config/familiar` (config and custom pets) is left alone.
 
 ## Development
 
@@ -383,6 +385,7 @@ This removes the hooks from `~/.claude/settings.json` and the opencode plugin li
 test/test-hook.sh                       # the hook records the right fields and never blocks
 node test/test-config.mjs               # rules, moods, decay, config errors, every built-in pet
 node test/test-opencode.mjs             # the opencode plugin, against fake 1.x and 2.x opencode APIs
+test/test-install.sh                    # install / uninstall / Claude Pet migration in a throwaway $HOME
 ```
 
 | Change | To see it |
@@ -392,7 +395,7 @@ node test/test-opencode.mjs             # the opencode plugin, against fake 1.x 
 | opencode plugin | A new opencode 1.x session, or `opencode service restart` for 2.x |
 | Extension code (`extension.js`, `config.js`, CSS) | Log out and back in, or test in a nested shell: `dbus-run-session -- gnome-shell --devkit --wayland` |
 
-Logs: `journalctl --user -f -o cat /usr/bin/gnome-shell | grep -i claude-pet`.
+Logs: `journalctl --user -f -o cat /usr/bin/gnome-shell | grep -i familiar`.
 
 ## License
 

@@ -1,4 +1,4 @@
-"""Generates the built-in pixel-art pets. Usage: python3 tools/gen_pets.py extension/claude-pet@tmurphy-credibly.github.io/pets"""
+"""Generates the built-in pixel-art pets. Usage: python3 tools/gen_pets.py extension/familiar@tmurphy-credibly.github.io/pets"""
 import json
 import sys
 

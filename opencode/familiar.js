@@ -1,5 +1,5 @@
-// opencode plugin for Claude Pet: records each opencode session's latest event in
-// ~/.cache/claude-pet/sessions/opencode-<session>.json, in the same shape the Claude
+// opencode plugin for Familiar: records each opencode session's latest event in
+// ~/.cache/familiar/sessions/opencode-<session>.json, in the same shape the Claude
 // Code hook writes, so the GNOME extension's rules apply unchanged.
 //
 // One file serves both plugin APIs:
@@ -12,11 +12,11 @@ import {homedir} from 'node:os';
 import {basename, join} from 'node:path';
 
 const AGENT = 'opencode';
-const LOADED = Symbol.for('claude-pet.opencode.loaded');
+const LOADED = Symbol.for('familiar.opencode.loaded');
 
 function stateDir() {
     const cache = process.env.XDG_CACHE_HOME || join(homedir(), '.cache');
-    return join(cache, 'claude-pet', 'sessions');
+    return join(cache, 'familiar', 'sessions');
 }
 
 function short(value, n) {
@@ -309,7 +309,7 @@ async function exclusive(start, empty) {
 }
 
 const plugin = {
-    id: 'claude-pet',
+    id: 'familiar',
     setup: ctx => exclusive(async release => {
         const cleanup = await setupV2(ctx);
         return async () => {
@@ -329,7 +329,7 @@ const plugin = {
 };
 
 // Internals for test/test-opencode.mjs, under a symbol so plugin loaders never see them.
-Object.defineProperty(plugin, Symbol.for('claude-pet.internals'), {
+Object.defineProperty(plugin, Symbol.for('familiar.internals'), {
     value: {toolDetail, createRecorder, handleV1, handleV2, setupV2, serverV1},
 });
 

@@ -2,7 +2,7 @@
 // Validates a pet file and previews it in the terminal.
 // Usage: node tools/check-pet.mjs path/to/pet.json [mood]
 import {readFileSync} from 'node:fs';
-import {buildConfig, parsePet} from '../extension/claude-pet@tmurphy-credibly.github.io/config.js';
+import {buildConfig, parsePet} from '../extension/familiar@tmurphy-credibly.github.io/config.js';
 
 const [path, onlyMood] = process.argv.slice(2);
 if (!path) {
