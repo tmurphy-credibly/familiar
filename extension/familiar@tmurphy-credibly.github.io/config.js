@@ -1,4 +1,4 @@
-// Pure config / rules / pet logic for Claude Pet. No GNOME imports, so it can be
+// Pure config / rules / pet logic for Familiar. No GNOME imports, so it can be
 // unit-tested with Node (see test/test-config.mjs).
 
 export const DEFAULTS = {
@@ -30,8 +30,10 @@ export const DEFAULTS = {
         sleeping: {label: 'Sleeping', color: '#9C8FE0', priority: 0, text: 'zz…', bubble: false, bob: false},
     },
     // First matching rule wins. Match fields: event (exact), tool / type / project /
-    // match (regex on detail). A rule sets a mood, or "ignore": true keeps the
-    // previous mood. text / detail are templates: {tool} {detail} {message} {project} {type} {event}.
+    // agent / match (regex on detail). A rule sets a mood, or "ignore": true keeps the
+    // previous mood. text / detail are templates:
+    // {tool} {detail} {message} {project} {agent} {type} {event}.
+    // Every agent adapter reports Claude Code's event names, so one set of rules fits all.
     rules: [
         {event: 'SessionStart', mood: 'idle'},
         {event: 'UserPromptSubmit', mood: 'thinking'},
@@ -86,7 +88,7 @@ export function buildConfig(user = {}) {
         if (!rule.ignore && !config.moods[rule.mood])
             throw new Error(`rule ${i + 1} (${rule.event}) uses unknown mood "${rule.mood}"`);
         const compiled = {...rule, _re: {}};
-        for (const field of ['tool', 'type', 'project', 'match']) {
+        for (const field of ['tool', 'type', 'project', 'agent', 'match']) {
             if (rule[field] === undefined)
                 continue;
             try {
@@ -100,12 +102,19 @@ export function buildConfig(user = {}) {
     return {config, warnings};
 }
 
+// The name a session is shown under: its project, plus the agent unless it is Claude Code.
+export function sessionLabel(ev) {
+    const agent = ev.agent || 'claude';
+    const project = ev.project || agent;
+    return agent === 'claude' || project === agent ? project : `${project} (${agent})`;
+}
+
 export function fill(template, ev) {
     return String(template ?? '').replace(/\{(\w+)\}/g, (_, key) => (ev[key] ?? '').toString());
 }
 
 export function matchRule(rules, ev) {
-    const fields = {tool: ev.tool, type: ev.type, project: ev.project, match: ev.detail};
+    const fields = {tool: ev.tool, type: ev.type, project: ev.project, agent: ev.agent || 'claude', match: ev.detail};
     return rules.find(rule => rule.event === ev.event &&
         Object.entries(rule._re).every(([field, re]) => re.test(fields[field] ?? ''))) ?? null;
 }

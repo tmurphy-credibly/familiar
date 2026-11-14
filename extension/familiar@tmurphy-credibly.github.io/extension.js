@@ -1,10 +1,10 @@
-// Claude Pet: a pixel pet in a screen corner that mirrors Claude Code's state.
+// Familiar: a pixel pet in a screen corner that mirrors your coding agents' state.
 //
 // Inputs:
-//   ~/.cache/claude-pet/sessions/*.json  latest hook event per session (hooks/claude-pet-hook.sh)
-//   ~/.config/claude-pet/config.json     optional overrides of config.js DEFAULTS (live reload)
-//   ~/.config/claude-pet/pets/*.json     optional custom pets (override built-in ./pets/*.json)
-//   ~/.config/claude-pet/state.json      runtime toggles (hidden, side), written by the extension
+//   ~/.cache/familiar/sessions/*.json    latest event per session (hooks/familiar-hook.sh, opencode/familiar.js)
+//   ~/.config/familiar/config.json       optional overrides of config.js DEFAULTS (live reload)
+//   ~/.config/familiar/pets/*.json       optional custom pets (override built-in ./pets/*.json)
+//   ~/.config/familiar/state.json        runtime toggles (hidden, side), written by the extension
 
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
@@ -17,10 +17,10 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-import {DEFAULTS, FALLBACK_PET, buildConfig, resolveEvent, effectiveState, parsePet, spriteFor, frameIndex} from './config.js';
+import {DEFAULTS, FALLBACK_PET, buildConfig, resolveEvent, effectiveState, parsePet, spriteFor, frameIndex, sessionLabel} from './config.js';
 
-const STATE_DIR = GLib.build_filenamev([GLib.get_user_cache_dir(), 'claude-pet', 'sessions']);
-const CONFIG_DIR = GLib.build_filenamev([GLib.get_user_config_dir(), 'claude-pet']);
+const STATE_DIR = GLib.build_filenamev([GLib.get_user_cache_dir(), 'familiar', 'sessions']);
+const CONFIG_DIR = GLib.build_filenamev([GLib.get_user_config_dir(), 'familiar']);
 const CONFIG_FILE = GLib.build_filenamev([CONFIG_DIR, 'config.json']);
 const USER_PETS_DIR = GLib.build_filenamev([CONFIG_DIR, 'pets']);
 const TOGGLES_FILE = GLib.build_filenamev([CONFIG_DIR, 'state.json']);
@@ -39,7 +39,7 @@ function hexToRgb(hex) {
     return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
-export default class ClaudePetExtension extends Extension {
+export default class FamiliarExtension extends Extension {
     enable() {
         this._toggles = this._loadToggles();
         this._sessions = [];
@@ -145,7 +145,7 @@ export default class ClaudePetExtension extends Extension {
             const result = buildConfig(user);
             config = result.config;
             for (const w of result.warnings)
-                console.warn(`claude-pet: ${w}`);
+                console.warn(`familiar: ${w}`);
         } catch (e) {
             this._reportConfigError(e.message);
             config = this._config ?? buildConfig({}).config;
@@ -189,12 +189,12 @@ export default class ClaudePetExtension extends Extension {
     }
 
     _reportConfigError(message) {
-        console.warn(`claude-pet: ${message}`);
+        console.warn(`familiar: ${message}`);
         if (message === this._lastConfigError)
             return;
         this._lastConfigError = message;
         try {
-            Main.notify('Claude Pet config error', `${message}\nKeeping the previous settings.`);
+            Main.notify('Familiar config error', `${message}\nKeeping the previous settings.`);
         } catch (e) {
             // Notifications unavailable; the journal has it.
         }
@@ -213,7 +213,7 @@ export default class ClaudePetExtension extends Extension {
     _buildUi() {
         this._box = new St.BoxLayout({
             orientation: Clutter.Orientation.VERTICAL,
-            style_class: 'claude-pet',
+            style_class: 'familiar',
             reactive: true,
             track_hover: true,
         });
@@ -228,7 +228,7 @@ export default class ClaudePetExtension extends Extension {
             this._updateUi();
         });
 
-        this._toolbar = new St.BoxLayout({style_class: 'claude-pet-toolbar'});
+        this._toolbar = new St.BoxLayout({style_class: 'familiar-toolbar'});
         this._toolbar.add_child(this._toolButton('view-conceal-symbolic', 'Hide pet', () => this._setToggle('hidden', true)));
         this._toolbar.add_child(this._toolButton('object-flip-horizontal-symbolic', 'Snap to the other corner', () =>
             this._snapToCorner(this._onRightHalf() ? 'left' : 'right')));
@@ -236,22 +236,22 @@ export default class ClaudePetExtension extends Extension {
 
         this._bubble = new St.BoxLayout({
             orientation: Clutter.Orientation.VERTICAL,
-            style_class: 'claude-pet-bubble',
+            style_class: 'familiar-bubble',
         });
-        const titleRow = new St.BoxLayout({style_class: 'claude-pet-title-row'});
-        this._dot = new St.Widget({style_class: 'claude-pet-dot', y_align: Clutter.ActorAlign.CENTER});
-        this._title = new St.Label({style_class: 'claude-pet-title'});
+        const titleRow = new St.BoxLayout({style_class: 'familiar-title-row'});
+        this._dot = new St.Widget({style_class: 'familiar-dot', y_align: Clutter.ActorAlign.CENTER});
+        this._title = new St.Label({style_class: 'familiar-title'});
         titleRow.add_child(this._dot);
         titleRow.add_child(this._title);
-        this._text = this._wrappedLabel('claude-pet-text');
-        this._detail = this._wrappedLabel('claude-pet-detail');
-        this._others = this._wrappedLabel('claude-pet-sessions');
-        this._hint = new St.Label({style_class: 'claude-pet-hint', text: 'Click me to open the terminal'});
+        this._text = this._wrappedLabel('familiar-text');
+        this._detail = this._wrappedLabel('familiar-detail');
+        this._others = this._wrappedLabel('familiar-sessions');
+        this._hint = new St.Label({style_class: 'familiar-hint', text: 'Click me to open the terminal'});
         for (const child of [titleRow, this._text, this._detail, this._others, this._hint])
             this._bubble.add_child(child);
 
         this._bubbleButton = new St.Button({
-            style_class: 'claude-pet-bubble-button',
+            style_class: 'familiar-bubble-button',
             child: this._bubble,
             accessible_name: 'Open the terminal',
         });
@@ -262,11 +262,11 @@ export default class ClaudePetExtension extends Extension {
         this._crab.connect('repaint', area => this._paint(area, true));
         // Not an St.Button: a press may become a drag, so clicks are told apart on release.
         this._crabButton = new St.Bin({
-            style_class: 'claude-pet-crab',
+            style_class: 'familiar-crab',
             child: this._crab,
             reactive: true,
             track_hover: true,
-            accessible_name: 'Claude pet: click to open the terminal, drag to move',
+            accessible_name: 'Familiar: click to open the terminal, drag to move',
         });
         this._crabButton.connect('button-press-event', (_actor, event) => this._onPress(event));
         this._crabButton.connect('motion-event', (_actor, event) => this._onMotion(event));
@@ -278,7 +278,7 @@ export default class ClaudePetExtension extends Extension {
 
     // Top-bar menu: a tiny live pet that opens the controls.
     _buildIndicator() {
-        this._indicator = new PanelMenu.Button(0.0, 'Claude Pet', false);
+        this._indicator = new PanelMenu.Button(0.0, 'Familiar', false);
         this._panelPet = new St.DrawingArea({y_align: Clutter.ActorAlign.CENTER});
         this._panelPet.connect('repaint', area => this._paint(area, false));
         this._indicator.add_child(this._panelPet);
@@ -309,7 +309,7 @@ export default class ClaudePetExtension extends Extension {
         menu.addAction('Edit config…', () => this._openConfig());
         menu.addAction('Open pets folder', () => this._openPath(USER_PETS_DIR));
         menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-        menu.addAction('Turn off Claude Pet', () => {
+        menu.addAction('Turn off Familiar', () => {
             // Defer: disabling destroys this menu while it is still handling the click.
             GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
                 Main.extensionManager.disableExtension(this.uuid);
@@ -331,7 +331,7 @@ export default class ClaudePetExtension extends Extension {
         const top = this._sessions[0];
         const label = this._config.moods[this._mood].label ?? this._mood;
         const others = this._sessions.length > 1 ? ` (+${this._sessions.length - 1} more)` : '';
-        this._statusItem.label.text = top ? `${label} · ${top.project}${others}` : 'No Claude sessions running';
+        this._statusItem.label.text = top ? `${label} · ${top.label}${others}` : 'No agent sessions running';
         this._showItem.setToggleState(this._toggles.shown);
         this._tuckItem.setToggleState(this._toggles.hidden);
         this._monitorItem.visible = Main.layoutManager.monitors.length > 1;
@@ -385,7 +385,7 @@ export default class ClaudePetExtension extends Extension {
         try {
             Gio.AppInfo.launch_default_for_uri(GLib.filename_to_uri(path, null), null);
         } catch (e) {
-            Main.notify('Claude Pet', `Could not open ${path}: ${e.message}`);
+            Main.notify('Familiar', `Could not open ${path}: ${e.message}`);
         }
     }
 
@@ -401,7 +401,7 @@ export default class ClaudePetExtension extends Extension {
 
     _toolButton(iconName, label, onClick) {
         const button = new St.Button({
-            style_class: 'claude-pet-tool',
+            style_class: 'familiar-tool',
             accessible_name: label,
             child: new St.Icon({icon_name: iconName, icon_size: 16}),
         });
@@ -434,12 +434,12 @@ export default class ClaudePetExtension extends Extension {
         this._bubbleButton.visible = shown && !hidden && !dragging && (this._hover || Boolean(top && moodCfg.bubble));
 
         this._dot.style = `background-color: ${moodCfg.color};`;
-        this._title.text = top ? `${moodCfg.label ?? mood} · ${top.project}` : (moodCfg.label ?? mood);
-        this._text.text = top ? top.text : 'No Claude sessions running.';
+        this._title.text = top ? `${moodCfg.label ?? mood} · ${top.label}` : (moodCfg.label ?? mood);
+        this._text.text = top ? top.text : 'No agent sessions running.';
         this._detail.text = top?.detail || '';
         this._detail.visible = Boolean(top?.detail);
 
-        const others = this._sessions.slice(1).map(s => `${s.project} · ${moods[s.mood].label ?? s.mood}`);
+        const others = this._sessions.slice(1).map(s => `${s.label} · ${moods[s.mood].label ?? s.mood}`);
         this._others.text = others.join('\n');
         this._others.visible = others.length > 0;
         this._hint.visible = Boolean(top) && this._config.look.showHint;
@@ -692,7 +692,7 @@ export default class ClaudePetExtension extends Extension {
                     }
                     if (now - entry.state.ts > staleS)
                         continue;
-                    sessions.push({project: ev.project || 'claude', ...effectiveState(this._config, entry.state, now)});
+                    sessions.push({project: ev.project || ev.agent || 'claude', label: sessionLabel(ev), ...effectiveState(this._config, entry.state, now)});
                 } catch (e) {
                     // Half-written or unreadable file: skip until the next change.
                 }
@@ -732,7 +732,7 @@ export default class ClaudePetExtension extends Extension {
         try {
             GLib.file_set_contents(TOGGLES_FILE, encoder.encode(JSON.stringify(this._toggles)));
         } catch (e) {
-            console.warn(`claude-pet: could not save ${TOGGLES_FILE}: ${e.message}`);
+            console.warn(`familiar: could not save ${TOGGLES_FILE}: ${e.message}`);
         }
         this._updateUi();
     }

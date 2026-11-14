@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Claude Code hook for Claude Pet: records each session's latest event in
-# ~/.cache/claude-pet/sessions/<session_id>.json for the GNOME extension.
+# Claude Code hook for Familiar: records each session's latest event in
+# ~/.cache/familiar/sessions/<session_id>.json for the GNOME extension.
 # Prints nothing and always exits 0, so it can never block or alter Claude.
 
-dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-pet/sessions"
+dir="${XDG_CACHE_HOME:-$HOME/.cache}/familiar/sessions"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 mkdir -p "$dir" 2>/dev/null || exit 0
 

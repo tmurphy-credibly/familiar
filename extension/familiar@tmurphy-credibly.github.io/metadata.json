@@ -1,0 +1,7 @@
+{
+  "uuid": "familiar@tmurphy-credibly.github.io",
+  "name": "Familiar",
+  "description": "A pixel pet in the corner of your screen that shows what your coding agent (Claude Code, opencode) is doing. Pets, moods and rules are configurable.",
+  "shell-version": ["50"],
+  "version": 1
+}

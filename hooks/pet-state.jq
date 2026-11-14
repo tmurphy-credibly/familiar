@@ -15,6 +15,7 @@ def tooldetail:
 (.cwd // "") as $cwd
 | {
     session_id: .session_id,
+    agent: "claude",
     event: (.hook_event_name // ""),
     tool: (.tool_name // ""),
     type: (.notification_type // ""),
