@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Installs Familiar: links the GNOME extension, enables it, registers the
 # Claude Code hooks in ~/.claude/settings.json (backup kept), and links the
-# opencode plugin if opencode is installed. Idempotent. Also migrates an
+# opencode plugin and Pi extension if those are installed. Idempotent. Also migrates an
 # install from when the project was called Claude Pet.
 set -euo pipefail
 
@@ -94,7 +94,17 @@ if [ -n "$opencode_bin" ]; then
   fi
 fi
 
+# 4. Pi extension (Pi 1.x and 0.7x)
+pi_dir="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
+pi_msg=""
+if command -v pi >/dev/null || [ -d "$pi_dir" ]; then
+  mkdir -p "$pi_dir/extensions"
+  ln -sfn "$root/pi/familiar.js" "$pi_dir/extensions/familiar.js"
+  pi_msg="Pi: extension linked into $pi_dir/extensions. Live for new Pi sessions (or /reload)."
+fi
+
 echo "Installed. Hooks are live for new Claude Code sessions."
 [ -n "$opencode_msg" ] && echo "$opencode_msg"
+[ -n "$pi_msg" ] && echo "$pi_msg"
 echo "Log out and back in once so GNOME Shell loads the extension."
 echo "Settings backup: $settings.bak-familiar"
