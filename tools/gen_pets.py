@@ -461,7 +461,55 @@ bunny = pet("Bunny", "Grey bunny: hops while working, flops an ear while thinkin
              "t": "#2A5DB0", "a": "#8A5A00", "h": "#E0546B", "z": "#5B4B9A"},
             [], bunny_moods)
 
-for name, data in (("crab", crab), ("robot", robot), ("cat", cat), ("turtle", turtle), ("dog", dog), ("penguin", penguin), ("duck", duck), ("frog", frog), ("owl", owl), ("fox", fox), ("bunny", bunny)):
+# ---------- paperclip (the flagship: a teal vinyl-coated clip whose wire tip glows) ----------
+# Traced like a real paperclip, with two free ends: the outer loop stops short at the
+# top right, and the inner loop's free end (left) carries the status-colored tip ("*").
+# Rows start at 1 so the bounce frames keep the top. The face sits inside the inner loop.
+pc_wire = [
+    (6, 1, 9, 1, "W"),                       # top bend, joining the inner right arm
+    (5, 2, 1, 13, "W"), (6, 15, 10, 1, "W"),  # outer left side + bottom bend
+    (16, 4, 1, 11, "W"),                     # outer right side: free end at the top
+    (14, 2, 1, 11, "W"), (8, 13, 6, 1, "W"),  # inner right arm + inner bottom bend
+    (5, 4, 1, 4, "H"), (7, 1, 2, 1, "H"),     # shine
+]
+pc_arm = [(7, 5, 1, 8, "W"), (7, 4, 1, 1, "*")]                  # inner U's free left arm, glowing tip
+pc_arm_flick = [(7, 7, 1, 6, "W"), (7, 6, 1, 1, "*"), (6, 5, 1, 1, "*")]  # tip flicks while working
+pc_cheeks = [(8, 8, 1, 1, "p"), (13, 8, 1, 1, "p")]
+pc_eyes = [(9, 5, 1, 2, "E"), (12, 5, 1, 2, "E")]
+pc_eyes_up = [(9, 4, 1, 2, "E"), (12, 4, 1, 2, "E")]
+pc_eyes_focus = [(9, 6, 1, 1, "E"), (12, 6, 1, 1, "E")]
+pc_eyes_big = [(8, 4, 2, 2, "E"), (8, 4, 1, 1, "L"), (12, 4, 2, 2, "E"), (12, 4, 1, 1, "L")]
+pc_eyes_happy = [(8, 6, 1, 1, "E"), (9, 5, 1, 1, "E"), (10, 6, 1, 1, "E"),
+                 (11, 6, 1, 1, "E"), (12, 5, 1, 1, "E"), (13, 6, 1, 1, "E")]
+pc_eyes_cross = [(8, 4, 1, 1, "E"), (9, 5, 1, 1, "E"), (8, 6, 1, 1, "E"),        # > <
+                 (13, 4, 1, 1, "E"), (12, 5, 1, 1, "E"), (13, 6, 1, 1, "E")]
+pc_eyes_shut = [(8, 6, 2, 1, "E"), (12, 6, 2, 1, "E")]
+pc_mouth = [(10, 9, 2, 1, "E")]
+pc_mouth_o = [(10, 9, 2, 2, "E")]
+pc_smile = [(9, 9, 1, 1, "E"), (10, 10, 2, 1, "E"), (12, 9, 1, 1, "E")]
+pc_frown = [(10, 9, 2, 1, "E"), (9, 10, 1, 1, "E"), (12, 10, 1, 1, "E")]
+pc_face = pc_wire + pc_cheeks
+paperclip_moods = {
+    "idle": {"fps": 1, "frames": [pc_face + pc_arm + pc_eyes + pc_mouth, pc_face + pc_arm + pc_eyes + pc_mouth,
+                                  pc_face + pc_arm + pc_eyes + pc_mouth, pc_face + pc_arm + pc_eyes_shut + pc_mouth]},
+    "thinking": {"frames": [pc_face + pc_arm + pc_eyes_up + pc_mouth + [(18, 4, 1, 1, "t"), (19, 1, 2, 2, "t")]]},
+    "working": {"fps": 3, "frames": [pc_face + pc_arm + pc_eyes_focus + pc_mouth,
+                                     shift_up(pc_face + pc_arm_flick + pc_eyes_focus + pc_mouth)]},
+    "needs": {"fps": 4, "frames": [pc_face + pc_arm + pc_eyes_big + pc_mouth_o + [(19, 1, 1, 3, "a"), (19, 5, 1, 1, "a")],
+                                   shift_up(pc_face + pc_arm + pc_eyes_big + pc_mouth_o)]},
+    "done": {"fps": 2, "frames": [shift_up(pc_face + pc_arm + pc_eyes_happy + pc_smile)
+                                  + [(18, 0, 1, 1, "h"), (20, 0, 1, 1, "h"), (18, 1, 3, 1, "h"), (19, 2, 1, 1, "h")],
+                                  pc_face + pc_arm + pc_eyes_happy + pc_smile]},
+    "error": {"frames": [pc_face + pc_arm_flick + pc_eyes_cross + pc_frown]},
+    "sleeping": {"fps": 1, "frames": [pc_face + pc_arm + pc_eyes_shut + [(18, 1, 3, 1, "z"), (19, 2, 1, 1, "z"), (18, 3, 3, 1, "z")],
+                                      pc_face + pc_arm + pc_eyes_shut]},
+}
+paperclip = pet("Paperclip", "Teal paperclip: the tip of its wire glows with the status color.", 22, 16,
+                {"W": "#3E9E97", "H": "#9FDCD5", "E": "#141413", "L": "#FAF9F5", "p": "#F2A7B5",
+                 "t": "#2A5DB0", "a": "#8A5A00", "h": "#E0546B", "z": "#5B4B9A"},
+                [], paperclip_moods)
+
+for name, data in (("paperclip", paperclip), ("crab", crab), ("robot", robot), ("cat", cat), ("turtle", turtle), ("dog", dog), ("penguin", penguin), ("duck", duck), ("frog", frog), ("owl", owl), ("fox", fox), ("bunny", bunny)):
     with open(f"{out_dir}/{name}.json", "w") as f:
         # Frames one row per line so the pixel art stays readable.
         text = json.dumps(data, indent=2)

@@ -2,9 +2,9 @@
 
 A pixel pet that lives in the corner of your GNOME desktop and shows what [Claude Code](https://code.claude.com), [opencode](https://opencode.ai) or [Pi](https://pi.dev) is doing: thinking, running a tool, waiting for your permission, finished, or asleep. It stays visible when your terminal is minimized, so you can get on with other work and look up when it waves at you.
 
-![Crab](docs/pets/crab.svg)
+![Paperclip](docs/pets/paperclip.svg)
 
-- **11 built-in pets**, plus your own: pets are pixel art in a JSON file.
+- **12 built-in pets**, plus your own: pets are pixel art in a JSON file.
 - **Every running Claude Code, opencode and Pi session** reports in; the pet shows the most urgent one.
 - **Configurable**: moods, messages, colors, which events trigger what, size and timing. Changes apply as soon as you save.
 - **Out of the way**: hide it, tuck it at the screen edge, or switch corners from a top-bar menu.
@@ -103,6 +103,10 @@ opencode's subagent sessions are folded into the session that started them. open
 ## The pets
 
 Pick one from the top-bar menu, or set `"pet"` in your [config](#configuration).
+
+**Paperclip** (`paperclip`), the flagship: a teal paperclip whose wire tip glows in the status color. It bounces when it needs you and flicks its tip while it works.
+
+![Paperclip](docs/pets/paperclip.svg)
 
 **Crab** (`crab`), the default: a pixel crab in the Claude Code mascot style.
 

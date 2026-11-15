@@ -93,7 +93,7 @@ test('fill leaves unknown placeholders empty', () => {
     assert.equal(fill('{tool}:{nope}', {tool: 'Bash'}), 'Bash:');
 });
 
-for (const name of ['crab', 'robot', 'cat', 'turtle', 'dog', 'penguin', 'duck', 'frog', 'owl', 'fox', 'bunny']) {
+for (const name of ['paperclip', 'crab', 'robot', 'cat', 'turtle', 'dog', 'penguin', 'duck', 'frog', 'owl', 'fox', 'bunny']) {
     test(`built-in pet "${name}" parses with every default mood`, () => {
         const pet = parsePet(JSON.parse(readFileSync(`${ext}pets/${name}.json`, 'utf8')));
         assert.equal(pet.width, 22);
