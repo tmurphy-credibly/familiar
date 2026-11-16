@@ -132,6 +132,13 @@ export function resolveEvent(config, ev, prev) {
     };
 }
 
+// A dismissed session: back to idle (or the default mood) with no bubble text,
+// keeping the event's timestamp so it still decays to sleeping on schedule.
+// A new event from the agent replaces it.
+export function dismissedState(config, state) {
+    return {mood: config.moods.idle ? 'idle' : config.defaultMood, text: '', detail: '', ts: state.ts};
+}
+
 // Applies "after" decay chains, then fills in the mood's default text.
 export function effectiveState(config, state, now) {
     let {mood, text, detail} = state;

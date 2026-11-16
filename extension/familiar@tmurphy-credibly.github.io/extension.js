@@ -17,7 +17,7 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-import {DEFAULTS, FALLBACK_PET, buildConfig, resolveEvent, effectiveState, parsePet, spriteFor, frameIndex, sessionLabel} from './config.js';
+import {DEFAULTS, FALLBACK_PET, buildConfig, resolveEvent, effectiveState, dismissedState, parsePet, spriteFor, frameIndex, sessionLabel} from './config.js';
 
 const STATE_DIR = GLib.build_filenamev([GLib.get_user_cache_dir(), 'familiar', 'sessions']);
 const CONFIG_DIR = GLib.build_filenamev([GLib.get_user_config_dir(), 'familiar']);
@@ -44,6 +44,7 @@ export default class FamiliarExtension extends Extension {
         this._toggles = this._loadToggles();
         this._sessions = [];
         this._memory = new Map(); // session file -> {eventKey, state}
+        this._dismissed = new Map(); // session file -> eventKey the user dismissed
         this._mood = 'sleeping';
         this._startMs = Date.now();
         this._hover = false;
@@ -89,7 +90,7 @@ export default class FamiliarExtension extends Extension {
         this._indicator = this._panelPet = this._statusItem = null;
         this._box = this._crab = null;
         this._sessions = [];
-        this._memory = null;
+        this._memory = this._dismissed = null;
         this._config = this._pet = null;
     }
 
@@ -229,6 +230,8 @@ export default class FamiliarExtension extends Extension {
         });
 
         this._toolbar = new St.BoxLayout({style_class: 'familiar-toolbar'});
+        this._dismissButton = this._toolButton('object-select-symbolic', 'Dismiss notifications', () => this._dismiss(this._sessions));
+        this._toolbar.add_child(this._dismissButton);
         this._toolbar.add_child(this._toolButton('view-conceal-symbolic', 'Hide pet', () => this._setToggle('hidden', true)));
         this._toolbar.add_child(this._toolButton('object-flip-horizontal-symbolic', 'Snap to the other corner', () =>
             this._snapToCorner(this._onRightHalf() ? 'left' : 'right')));
@@ -301,6 +304,9 @@ export default class FamiliarExtension extends Extension {
         menu.addMenuItem(this._monitorItem);
         menu.addAction('Snap to bottom-left corner', () => this._snapToCorner('left'));
         menu.addAction('Snap to bottom-right corner', () => this._snapToCorner('right'));
+        this._dismissItem = new PopupMenu.PopupMenuItem('Dismiss notifications');
+        this._dismissItem.connect('activate', () => this._dismiss(this._sessions));
+        menu.addMenuItem(this._dismissItem);
 
         this._petMenu = new PopupMenu.PopupSubMenuMenuItem('Pet');
         menu.addMenuItem(this._petMenu);
@@ -335,6 +341,7 @@ export default class FamiliarExtension extends Extension {
         this._showItem.setToggleState(this._toggles.shown);
         this._tuckItem.setToggleState(this._toggles.hidden);
         this._monitorItem.visible = Main.layoutManager.monitors.length > 1;
+        this._dismissItem.visible = this._hasNotifications();
 
         this._petMenu.menu.removeAll();
         for (const name of this._listPets()) {
@@ -431,6 +438,7 @@ export default class FamiliarExtension extends Extension {
         // Hide the children, not the box: trackFullscreen manages the box's own visibility.
         this._crabButton.visible = shown;
         this._toolbar.visible = shown && !hidden && !dragging && this._hover;
+        this._dismissButton.visible = this._hasNotifications();
         this._bubbleButton.visible = shown && !hidden && !dragging && (this._hover || Boolean(top && moodCfg.bubble));
 
         this._dot.style = `background-color: ${moodCfg.color};`;
@@ -692,7 +700,13 @@ export default class FamiliarExtension extends Extension {
                     }
                     if (now - entry.state.ts > staleS)
                         continue;
-                    sessions.push({project: ev.project || ev.agent || 'claude', label: sessionLabel(ev), ...effectiveState(this._config, entry.state, now)});
+                    // Dismissed until the agent sends its next event.
+                    const state = this._dismissed.get(name) === eventKey ? dismissedState(this._config, entry.state) : entry.state;
+                    sessions.push({
+                        file: name, eventKey,
+                        project: ev.project || ev.agent || 'claude', label: sessionLabel(ev),
+                        ...effectiveState(this._config, state, now),
+                    });
                 } catch (e) {
                     // Half-written or unreadable file: skip until the next change.
                 }
@@ -700,9 +714,11 @@ export default class FamiliarExtension extends Extension {
             enumerator.close(null);
         }
 
-        for (const key of [...this._memory.keys()]) {
-            if (!seen.has(key))
-                this._memory.delete(key);
+        for (const map of [this._memory, this._dismissed]) {
+            for (const key of [...map.keys()]) {
+                if (!seen.has(key))
+                    map.delete(key);
+            }
         }
 
         const moods = this._config.moods;
@@ -714,15 +730,30 @@ export default class FamiliarExtension extends Extension {
 
     // ---------- actions ----------
 
+    // Opening the terminal counts as seeing the top session's notification: it is
+    // dismissed, and the next most urgent session (if any) takes the bubble.
     _raiseTerminal() {
+        const top = this._sessions[0];
         const windows = global.display.get_tab_list(Meta.TabList.NORMAL_ALL, null)
             .filter(w => TERMINAL_RE.test(`${w.get_wm_class() ?? ''} ${w.get_gtk_application_id?.() ?? ''}`));
-        if (windows.length === 0)
-            return;
+        if (windows.length > 0) {
+            const project = top?.project;
+            const match = project && windows.find(w => (w.get_title() ?? '').includes(project));
+            Main.activateWindow(match || windows[0]);
+        }
+        if (top)
+            this._dismiss([top]);
+    }
 
-        const project = this._sessions[0]?.project;
-        const match = project && windows.find(w => (w.get_title() ?? '').includes(project));
-        Main.activateWindow(match || windows[0]);
+    _hasNotifications() {
+        return this._sessions.some(s => this._config.moods[s.mood].bubble);
+    }
+
+    // Quiets these sessions until each one's next event.
+    _dismiss(sessions) {
+        for (const s of sessions)
+            this._dismissed.set(s.file, s.eventKey);
+        this._refresh();
     }
 
     // ---------- runtime toggles ----------

@@ -63,8 +63,9 @@ To update, `git pull`. Pet and config changes apply immediately; extension code 
 **On the desktop.** The pet starts in the bottom-right corner. When your agent needs you, finishes, or hits an error, a speech bubble says so: which project, and what it wants, such as "Can I run Bash?" with the command.
 
 - **Drag** the pet anywhere, on any monitor. It remembers the spot. The bubble opens toward the middle of the screen, and below the pet when it's near the top.
-- **Click** the pet or the bubble to bring up your terminal. It picks the most recently used terminal window, preferring one whose title contains the project name.
-- **Hover** to see the bubble any time, plus a small toolbar to tuck the pet away or snap it to the other corner.
+- **Click** the pet or the bubble to bring up your terminal. It picks the most recently used terminal window, preferring one whose title contains the project name. The click also dismisses that session's bubble; if another session needs you, its bubble comes up next.
+- **Hover** to see the bubble any time, plus a small toolbar to dismiss every bubble (✓), tuck the pet away, or snap it to the other corner.
+- **Dismissed** sessions show as idle until the agent does something new, then the pet reacts as usual.
 - **Tucked away**, the pet peeks over the bottom edge of its monitor and rises when something urgent happens. Click or drag it to bring it back.
 - **Monitor unplugged?** The pet moves to your main monitor, and returns to its spot when the monitor is back.
 
@@ -77,6 +78,7 @@ To update, `git pull`. Pet and config changes apply immediately; extension code 
 | Tuck at screen edge | Peek-over-the-edge mode |
 | Move to next monitor | Same spot on your next monitor (shown with 2+ monitors) |
 | Snap to bottom-left / bottom-right corner | Back to a corner of the pet's current monitor |
+| Dismiss notifications | Quiet every bubble until each agent's next event (shown when there's something to dismiss) |
 | Pet ▸ | Pick any built-in or custom pet |
 | Edit config… | Opens `~/.config/familiar/config.json` (creates it if needed) |
 | Open pets folder | Opens `~/.config/familiar/pets/` |
