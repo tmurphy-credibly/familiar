@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 import {
-    FALLBACK_PET, buildConfig, resolveEvent, effectiveState, parsePet, spriteFor, frameIndex, fill,
+    FALLBACK_PET, buildConfig, resolveEvent, effectiveState, dismissedState, parsePet, spriteFor, frameIndex, fill,
 } from '../extension/familiar@tmurphy-credibly.github.io/config.js';
 
 const ext = fileURLToPath(new URL('../extension/familiar@tmurphy-credibly.github.io/', import.meta.url));
@@ -51,6 +51,13 @@ test('decay chain done -> idle -> sleeping', () => {
     const idle = effectiveState(config, s, 1200);
     assert.deepEqual([idle.mood, idle.text], ['idle', 'Ready when you are.']);
     assert.equal(effectiveState(config, s, 1700).mood, 'sleeping');
+});
+
+test('dismissed state is idle, quiet, and still decays', () => {
+    const d = dismissedState(config, {mood: 'needs', text: 'Can I run Bash?', detail: 'rm x', ts: 1000});
+    assert.deepEqual(d, {mood: 'idle', text: '', detail: '', ts: 1000});
+    assert.equal(config.moods[d.mood].bubble, false);
+    assert.equal(effectiveState(config, d, 1700).mood, 'sleeping');
 });
 
 test('empty rule text falls back to the mood text', () => {
